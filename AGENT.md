@@ -8,6 +8,7 @@ This repo owns the automated news worker and article API for Polywhale. It is in
 - Create a news article when the resolution tracker materializes a resolved BUY loss at or above `LOSS_NEWS_MIN_USD`.
 - Use MiniMax M2.7 through an environment variable key to make article copy varied, but always fall back to deterministic template copy if AI is unavailable.
 - Serve article APIs and sitemap/RSS routes for Railway.
+- The website renders canonical `/news` pages from this service through `AUTONEWS_BASE_URL`; do not point article canonicals at the autonews Railway subdomain.
 
 ## Non-Negotiables
 
@@ -16,6 +17,7 @@ This repo owns the automated news worker and article API for Polywhale. It is in
 - Article URLs are canonicalized to `PUBLIC_SITE_URL/news/:slug`.
 - Dedupe is based on `triggerKey`, not title or slug text.
 - Generated copy must stay factual. It may be catchy, but it must not invent trader identity, motive, or profit/loss beyond the stored trade/outcome data.
+- If no public username/display name exists, use `Polymarket whale` in titles and summaries. Avoid wallet keys or `0x...` strings in titles/deks.
 
 ## Data Flow
 
@@ -26,7 +28,22 @@ This repo owns the automated news worker and article API for Polywhale. It is in
 5. A periodic backfill polls `/v1/whales` and scans recent `trade_outcomes` to cover downtime.
 6. The website fetches article JSON from this service and renders canonical `/news` pages under the existing Polywhale chrome.
 
+## Public URLs and Sitemaps
+
+- Canonical news hub: `https://www.polywhaletrades.com/news`.
+- Canonical article URL shape: `https://www.polywhaletrades.com/news/:slug`.
+- Website Search Console submissions: submit `sitemap.xml` and `sitemap-news.xml` on `www.polywhaletrades.com`.
+- The website root sitemap includes `/news` and published article URLs.
+- The website `/sitemap-news.xml` is a Google News sitemap limited to articles from the last 48 hours, so it can be empty when no fresh stories exist.
+- This service also serves `/sitemap.xml`, `/news-sitemap.xml`, and `/rss.xml` for diagnostics, but public search indexing should use the website domain sitemaps.
+
+## Main API/Health Checks
+
+- `GET /health`: service status and `news_articles` counts.
+- `GET /v1/news?limit=5`: latest published articles.
+- `GET /v1/news/:slug`: one published article.
+- `GET /news`: standalone HTML fallback; the primary public hub is still the website route.
+
 ## Railway
 
 Build uses the Dockerfile. Runtime command is `npm start`, and `/health` is the health check.
-
