@@ -13,6 +13,8 @@ const MONTHS = [
   'december',
 ];
 
+export const GENERIC_TRADER_LABEL = 'Polymarket whale';
+
 export function compactUsd(value: number): string {
   const abs = Math.abs(value);
   if (abs >= 1_000_000) return `$${trimNumber(abs / 1_000_000)}M`;
@@ -69,7 +71,18 @@ export function traderLabel(input: {
 }): string {
   const chosen = input.displayName || input.pseudonym;
   if (chosen && chosen.trim().length > 0) return chosen.trim();
-  return shortWallet(input.wallet);
+  return GENERIC_TRADER_LABEL;
+}
+
+export function isWalletLikeLabel(value: string | null | undefined): boolean {
+  return /^0x[a-f0-9]{4,}(?:[-_][a-f0-9]{3,})?$/i.test(String(value || '').trim());
+}
+
+export function sanitizeWalletLabels(value: string): string {
+  return value
+    .replace(/\b0x[a-f0-9]{4,}(?:[-_][a-f0-9]{3,})?\b/gi, GENERIC_TRADER_LABEL)
+    .replace(/\bThe wallet Polymarket whale\b/g, 'The Polymarket whale')
+    .replace(/\bthe wallet Polymarket whale\b/g, 'the Polymarket whale');
 }
 
 export function titleCase(input: string): string {
@@ -88,4 +101,3 @@ function trimNumber(value: number): string {
   const fixed = value >= 10 ? value.toFixed(1) : value.toFixed(2);
   return fixed.replace(/\.0+$/, '').replace(/(\.\d)0$/, '$1');
 }
-

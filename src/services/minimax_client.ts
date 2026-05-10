@@ -2,7 +2,7 @@ import { request } from 'undici';
 import { loadConfig } from '../config.js';
 import type { ArticleDraft, ArticleEvent } from '../shared/types.js';
 import { buildTemplateDraft } from './article_templates.js';
-import { compactUsd, displayDate, formatPrice, formatUsd } from '../shared/format.js';
+import { compactUsd, displayDate, formatPrice, formatUsd, sanitizeWalletLabels } from '../shared/format.js';
 
 interface MiniMaxChatResponse {
   choices?: Array<{
@@ -117,9 +117,9 @@ function sanitizeDraft(input: Partial<ArticleDraft>): ArticleDraft {
   }
 
   return {
-    title: String(input.title).trim().slice(0, 140),
-    dek: String(input.dek).trim().slice(0, 260),
-    body: body.slice(0, 6).map((paragraph) => paragraph.slice(0, 900)),
+    title: sanitizeWalletLabels(String(input.title).trim()).slice(0, 140),
+    dek: sanitizeWalletLabels(String(input.dek).trim()).slice(0, 260),
+    body: body.slice(0, 6).map((paragraph) => sanitizeWalletLabels(paragraph).slice(0, 900)),
     tags,
   };
 }
@@ -154,7 +154,7 @@ function buildMessages(event: ArticleEvent) {
     {
       role: 'system',
       content:
-        'You write factual, concise SEO news articles for Polywhale about public Polymarket whale activity. Be catchy but never fabricate motives, identities, broader portfolio results, insider knowledge, or investment advice. Use only the supplied facts. Return JSON only.',
+        'You write factual, concise news articles for Polywhale about public Polymarket whale activity. Be catchy but never fabricate motives, identities, broader portfolio results, insider knowledge, or investment advice. Use only the supplied facts. Return JSON only.',
     },
     {
       role: 'user',
@@ -170,10 +170,11 @@ function buildMessages(event: ArticleEvent) {
         '- 3 to 5 body paragraphs.',
         '- Mention Polywhale once as the data source.',
         '- Use plain English and vary headline wording.',
+        '- Do not put wallet addresses, 0x strings, or shortened wallet keys in the title or dek.',
+        '- If the trader label is "Polymarket whale", use that phrase instead of the wallet address.',
         '- Do not say the trader is right, smart, reckless, or guaranteed to win.',
         '- Include "not financial advice" only if it fits naturally; do not make the article sound legalistic.',
       ].join('\n'),
     },
   ];
 }
-

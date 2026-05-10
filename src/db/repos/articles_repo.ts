@@ -1,6 +1,7 @@
 import type { Collection } from 'mongodb';
 import { articlesCollection } from '../mongo.js';
 import type { ArticleEvent, NewsArticleDoc } from '../../shared/types.js';
+import { GENERIC_TRADER_LABEL, isWalletLikeLabel, sanitizeWalletLabels } from '../../shared/format.js';
 
 export interface ArticleClaim {
   slug: string;
@@ -75,23 +76,26 @@ export async function markArticleFailed(slug: string, message: string): Promise<
 }
 
 export async function getArticleBySlug(slug: string): Promise<NewsArticleDoc | null> {
-  return articlesCollection().findOne({ _id: slug, status: 'published' });
+  const article = await articlesCollection().findOne({ _id: slug, status: 'published' });
+  return article ? sanitizePublicArticle(article) : null;
 }
 
 export async function listPublishedArticles(limit = 25): Promise<NewsArticleDoc[]> {
-  return articlesCollection()
+  const articles = await articlesCollection()
     .find({ status: 'published' })
     .sort({ publishedAt: -1, _id: -1 })
     .limit(Math.min(Math.max(limit, 1), 100))
     .toArray();
+  return articles.map(sanitizePublicArticle);
 }
 
 export async function listRecentNewsArticles(limit = 1000): Promise<NewsArticleDoc[]> {
-  return articlesCollection()
+  const articles = await articlesCollection()
     .find({ status: 'published' })
     .sort({ publishedAt: -1, _id: -1 })
     .limit(Math.min(Math.max(limit, 1), 1000))
     .toArray();
+  return articles.map(sanitizePublicArticle);
 }
 
 export async function countArticlesByStatus(
@@ -105,3 +109,16 @@ export async function countArticlesByStatus(
   return Object.fromEntries(rows.map((row) => [row._id, row.count]));
 }
 
+export function sanitizePublicArticle(article: NewsArticleDoc): NewsArticleDoc {
+  const traderName = article.facts?.traderName;
+  return {
+    ...article,
+    title: sanitizeWalletLabels(article.title),
+    dek: sanitizeWalletLabels(article.dek),
+    body: article.body.map((paragraph) => sanitizeWalletLabels(paragraph)),
+    facts: {
+      ...article.facts,
+      traderName: isWalletLikeLabel(traderName) ? GENERIC_TRADER_LABEL : traderName,
+    },
+  };
+}

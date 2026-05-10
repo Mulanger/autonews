@@ -29,8 +29,9 @@ describe('event builder', () => {
     );
 
     expect(event?.triggerKey).toBe('trade:trade_abc123');
-    expect(event?.slug).toContain('0x1234-cdef-backs-yes-250k');
+    expect(event?.slug).toContain('polymarket-whale-backs-yes-250k');
+    expect(event?.slug).not.toContain('0x1234');
+    expect(event?.facts.traderName).toBe('Polymarket whale');
     expect(event?.facts.marketTitle).toBe('Will BTC hit $100K in 2026?');
   });
 });
-
