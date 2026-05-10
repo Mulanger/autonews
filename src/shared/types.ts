@@ -14,6 +14,10 @@ export interface WhaleDto {
     title?: string;
     category?: string | null;
     polymarketUrl?: string | null;
+    image?: string | null;
+    imageUrl?: string | null;
+    icon?: string | null;
+    iconUrl?: string | null;
   };
   trader?: {
     proxyWallet?: string;
@@ -75,6 +79,7 @@ export interface ArticleFactSet {
   transactionHash: string | null;
   polymarketUrl: string | null;
   category: string | null;
+  marketImageUrl?: string | null;
   lossUsd?: number;
   pnlUsd?: number | null;
   payoutUsd?: number | null;
@@ -97,6 +102,34 @@ export interface ArticleDraft {
   tags: string[];
 }
 
+export interface ArticleImage {
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+  mimeType: string;
+  credit: string;
+}
+
+export interface ArticleSourceLink {
+  label: string;
+  url: string;
+  kind: 'polywhale' | 'polymarket' | 'polygonscan';
+}
+
+export interface ArticleByline {
+  name: string;
+  url: string;
+  type: 'Organization' | 'Person';
+}
+
+export interface ArticleQuality {
+  score: number;
+  reasons: string[];
+  clusterKey: string;
+  eventAgeHours: number;
+}
+
 export interface NewsArticleDoc {
   _id: string;
   slug: string;
@@ -109,6 +142,11 @@ export interface NewsArticleDoc {
   tags: string[];
   canonicalUrl: string;
   facts: ArticleFactSet;
+  image?: ArticleImage;
+  sourceLinks?: ArticleSourceLink[];
+  byline?: ArticleByline;
+  editorialDisclosure?: string;
+  quality?: ArticleQuality;
   source: ArticleEvent['source'];
   ai: {
     provider: 'minimax' | 'template';
@@ -120,4 +158,3 @@ export interface NewsArticleDoc {
   createdAt: Date;
   updatedAt: Date;
 }
-

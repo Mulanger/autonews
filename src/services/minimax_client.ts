@@ -44,9 +44,9 @@ export async function generateArticleDraft(event: ArticleEvent): Promise<{
       body: JSON.stringify({
         model: config.minimaxModel,
         messages: buildMessages(event),
-        temperature: 0.72,
+        temperature: 0.58,
         top_p: 0.9,
-        max_completion_tokens: 1200,
+        max_completion_tokens: config.aiMaxCompletionTokens,
       }),
       bodyTimeout: 30_000,
       headersTimeout: 30_000,
@@ -112,14 +112,14 @@ function sanitizeDraft(input: Partial<ArticleDraft>): ArticleDraft {
     ? input.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 6)
     : [];
 
-  if (!input.title || !input.dek || body.length < 2) {
+  if (!input.title || !input.dek || body.length < 3) {
     throw new Error('Article draft is missing title, dek, or body paragraphs');
   }
 
   return {
-    title: sanitizeWalletLabels(String(input.title).trim()).slice(0, 140),
+    title: sanitizeHeadline(String(input.title).trim()).slice(0, 118),
     dek: sanitizeWalletLabels(String(input.dek).trim()).slice(0, 260),
-    body: body.slice(0, 6).map((paragraph) => sanitizeWalletLabels(paragraph).slice(0, 900)),
+    body: body.slice(0, 8).map((paragraph) => sanitizeWalletLabels(paragraph).slice(0, 1100)),
     tags,
   };
 }
@@ -154,7 +154,7 @@ function buildMessages(event: ArticleEvent) {
     {
       role: 'system',
       content:
-        'You write factual, concise news articles for Polywhale about public Polymarket whale activity. Be catchy but never fabricate motives, identities, broader portfolio results, insider knowledge, or investment advice. Use only the supplied facts. Return JSON only.',
+        'You are a careful data journalist for Polywhale. You write factual news articles about public Polymarket whale activity using only the supplied facts. Add clear context and caveats, but never fabricate motives, identities, broader portfolio results, insider knowledge, price movement, or investment advice. Return JSON only.',
     },
     {
       role: 'user',
@@ -164,17 +164,33 @@ function buildMessages(event: ArticleEvent) {
         factLines.join('\n'),
         '',
         'Return exactly this JSON shape:',
-        '{"title":"catchy factual headline","dek":"one sentence summary","body":["paragraph 1","paragraph 2","paragraph 3"],"tags":["Polymarket","Whale trade"]}',
+        '{"title":"specific factual headline","dek":"one sentence summary","body":["lead paragraph","context paragraph","source paragraph","caveat paragraph"],"tags":["Polymarket","Whale trade"]}',
         '',
         'Rules:',
-        '- 3 to 5 body paragraphs.',
+        '- 4 to 7 body paragraphs.',
+        '- Lead with what happened, the amount, the market, the side/outcome, and the timestamp.',
+        '- Include one context paragraph explaining why this whale flow matters without claiming it predicts the result.',
         '- Mention Polywhale once as the data source.',
-        '- Use plain English and vary headline wording.',
+        '- Use plain English and write like a real short market-news article, not a template.',
+        '- Use Polymarket and Polywhale naturally; do not stuff keywords.',
         '- Do not put wallet addresses, 0x strings, or shortened wallet keys in the title or dek.',
         '- If the trader label is "Polymarket whale", use that phrase instead of the wallet address.',
-        '- Do not say the trader is right, smart, reckless, or guaranteed to win.',
+        '- Do not use clickbait verbs such as burns, crushed, wrecked, insane, shocking, or guaranteed.',
+        '- Do not say the trader is right, smart, reckless, doomed, or guaranteed to win.',
         '- Include "not financial advice" only if it fits naturally; do not make the article sound legalistic.',
       ].join('\n'),
     },
   ];
+}
+
+function sanitizeHeadline(value: string): string {
+  return sanitizeWalletLabels(value)
+    .replace(/\b(burns|burned|crushed|wrecked|insane|shocking)\b/gi, (match) => {
+      const lower = match.toLowerCase();
+      if (lower === 'burns' || lower === 'burned') return 'loses';
+      if (lower === 'crushed' || lower === 'wrecked') return 'loses';
+      return 'large';
+    })
+    .replace(/\s+/g, ' ')
+    .trim();
 }

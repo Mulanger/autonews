@@ -31,6 +31,11 @@ export function renderNewsIndexHtml(articles: NewsArticleDoc[]): string {
 export function renderArticleHtml(article: NewsArticleDoc, related: NewsArticleDoc[]): string {
   const facts = article.facts;
   const body = article.body.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('\n');
+  const image = article.image;
+  const byline = article.byline?.name || 'Polywhale News Desk';
+  const sources = (article.sourceLinks || [])
+    .map((source) => `<a href="${escapeHtml(source.url)}" rel="nofollow noopener" target="_blank">${escapeHtml(source.label)}</a>`)
+    .join('');
   const relatedLinks = related
     .filter((item) => item.slug !== article.slug)
     .slice(0, 4)
@@ -43,8 +48,19 @@ export function renderArticleHtml(article: NewsArticleDoc, related: NewsArticleD
     description: article.dek,
     datePublished: article.publishedAt.toISOString(),
     dateModified: article.updatedAt.toISOString(),
+    image: image
+      ? [
+          {
+            '@type': 'ImageObject',
+            url: image.url,
+            width: image.width,
+            height: image.height,
+            caption: image.alt,
+          },
+        ]
+      : undefined,
     mainEntityOfPage: article.canonicalUrl,
-    author: { '@type': 'Organization', name: 'Polywhale' },
+    author: { '@type': article.byline?.type || 'Organization', name: byline, url: article.byline?.url },
     publisher: {
       '@type': 'Organization',
       name: 'Polywhale',
@@ -59,6 +75,8 @@ export function renderArticleHtml(article: NewsArticleDoc, related: NewsArticleD
     title: article.title,
     description: article.dek,
     canonical: article.canonicalUrl,
+    imageUrl: image?.url,
+    imageAlt: image?.alt,
     jsonLd,
     body: `
       <main class="news-main">
@@ -68,11 +86,19 @@ export function renderArticleHtml(article: NewsArticleDoc, related: NewsArticleD
           <h1>${escapeHtml(article.title)}</h1>
           <p class="dek">${escapeHtml(article.dek)}</p>
           <div class="meta">
+            <span>By ${escapeHtml(byline)}</span>
             <span>${escapeHtml(displayDate(Math.floor(article.publishedAt.getTime() / 1000)))}</span>
             <span>${escapeHtml(compactUsd(facts.lossUsd ?? facts.amountUsd))}</span>
             <span>${escapeHtml(facts.marketTitle)}</span>
           </div>
+          ${
+            image
+              ? `<figure class="hero-image"><img src="${escapeHtml(image.url)}" width="${image.width}" height="${image.height}" alt="${escapeHtml(image.alt)}"><figcaption>${escapeHtml(image.credit)}</figcaption></figure>`
+              : ''
+          }
           <section class="body">${body}</section>
+          <p class="disclosure">${escapeHtml(article.editorialDisclosure || '')}</p>
+          ${sources ? `<section class="sources"><h2>Sources</h2><div>${sources}</div></section>` : ''}
         </article>
       </main>
       <aside class="rail">
@@ -100,6 +126,8 @@ function renderShell(args: {
   canonical: string;
   body: string;
   jsonLd?: unknown;
+  imageUrl?: string;
+  imageAlt?: string;
 }) {
   return `<!doctype html>
 <html lang="en">
@@ -114,6 +142,7 @@ function renderShell(args: {
   <meta property="og:description" content="${escapeHtml(args.description)}">
   <meta property="og:type" content="article">
   <meta property="og:url" content="${escapeHtml(args.canonical)}">
+  ${args.imageUrl ? `<meta property="og:image" content="${escapeHtml(args.imageUrl)}"><meta property="og:image:alt" content="${escapeHtml(args.imageAlt || args.title)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="${escapeHtml(args.imageUrl)}">` : ''}
   ${args.jsonLd ? `<script type="application/ld+json">${JSON.stringify(args.jsonLd).replace(/</g, '\\u003c')}</script>` : ''}
   <style>${css()}</style>
 </head>
@@ -156,8 +185,16 @@ function css(): string {
     .dek { max-width:780px; margin:18px 0 0; color:var(--muted); font-size:clamp(17px,2vw,22px); line-height:1.52; }
     .meta { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
     .meta span { min-height:28px; display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; padding:0 10px; color:var(--muted); background:rgba(255,255,255,.035); font-size:12px; font-weight:800; }
+    .hero-image { max-width:820px; margin:28px 0 0; }
+    .hero-image img { display:block; width:100%; height:auto; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.035); }
+    .hero-image figcaption { margin-top:8px; color:var(--soft); font-size:11px; }
     .body { max-width:760px; margin-top:30px; }
     .body p { margin:0 0 18px; color:rgba(238,248,244,.76); font-size:16px; line-height:1.78; }
+    .disclosure { max-width:760px; margin:26px 0 0; color:var(--soft); font-size:12px; line-height:1.55; }
+    .sources { max-width:760px; margin-top:28px; }
+    .sources h2 { margin:0 0 10px; color:var(--text); font-size:14px; }
+    .sources div { display:flex; flex-wrap:wrap; gap:8px; }
+    .sources a { min-height:30px; display:inline-flex; align-items:center; border:1px solid var(--line); border-radius:999px; padding:0 10px; color:var(--accent); background:rgba(94,231,173,.08); font-size:12px; font-weight:850; }
     .rail { min-width:0; padding:34px 22px; border-left:1px solid var(--line); background:rgba(7,11,12,.62); }
     .rail section { margin-bottom:28px; }
     .rail h2 { margin:0 0 12px; color:var(--text); font-size:14px; font-weight:900; }
@@ -175,4 +212,3 @@ function css(): string {
     @media (max-width:1020px) { .shell { display:block; } .sidebar, .rail { display:none; } .news-main { padding:24px 18px 72px; } h1 { font-size:38px; } }
   `;
 }
-

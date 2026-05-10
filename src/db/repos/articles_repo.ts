@@ -2,13 +2,22 @@ import type { Collection } from 'mongodb';
 import { articlesCollection } from '../mongo.js';
 import type { ArticleEvent, NewsArticleDoc } from '../../shared/types.js';
 import { GENERIC_TRADER_LABEL, isWalletLikeLabel, sanitizeWalletLabels } from '../../shared/format.js';
+import { buildArticleImage } from '../../services/article_assets.js';
+import {
+  buildArticleByline,
+  buildEditorialDisclosure,
+  buildSourceLinks,
+} from '../../services/article_sources.js';
 
 export interface ArticleClaim {
   slug: string;
   inserted: boolean;
 }
 
-export async function claimArticle(event: ArticleEvent): Promise<ArticleClaim> {
+export async function claimArticle(
+  event: ArticleEvent,
+  quality: NewsArticleDoc['quality'],
+): Promise<ArticleClaim> {
   const now = new Date();
   const col = articlesCollection();
 
@@ -24,6 +33,11 @@ export async function claimArticle(event: ArticleEvent): Promise<ArticleClaim> {
     tags: [],
     canonicalUrl: '',
     facts: event.facts,
+    image: buildArticleImage(event),
+    sourceLinks: buildSourceLinks(event),
+    byline: buildArticleByline(),
+    editorialDisclosure: buildEditorialDisclosure(),
+    quality,
     source: event.source,
     ai: {
       provider: 'template',
@@ -48,7 +62,20 @@ export async function claimArticle(event: ArticleEvent): Promise<ArticleClaim> {
 
 export async function publishArticle(
   slug: string,
-  update: Pick<NewsArticleDoc, 'title' | 'dek' | 'body' | 'tags' | 'canonicalUrl' | 'ai'>,
+  update: Pick<
+    NewsArticleDoc,
+    | 'title'
+    | 'dek'
+    | 'body'
+    | 'tags'
+    | 'canonicalUrl'
+    | 'image'
+    | 'sourceLinks'
+    | 'byline'
+    | 'editorialDisclosure'
+    | 'quality'
+    | 'ai'
+  >,
 ): Promise<void> {
   await articlesCollection().updateOne(
     { _id: slug },
@@ -98,6 +125,40 @@ export async function listRecentNewsArticles(limit = 1000): Promise<NewsArticleD
   return articles.map(sanitizePublicArticle);
 }
 
+export async function findRecentSimilarArticle(
+  event: ArticleEvent,
+  since: Date,
+): Promise<NewsArticleDoc | null> {
+  const filters: Record<string, unknown>[] = [];
+
+  if (event.facts.conditionId) {
+    filters.push({ 'facts.conditionId': event.facts.conditionId });
+  }
+
+  if (event.facts.marketSlug) {
+    filters.push({ 'facts.marketSlug': event.facts.marketSlug });
+  }
+
+  if (!filters.length) {
+    filters.push({ 'quality.clusterKey': event.kind + ':' + event.facts.wallet });
+  }
+
+  const article = await articlesCollection().findOne(
+    {
+      status: { $in: ['generating', 'published'] },
+      kind: event.kind,
+      triggerKey: { $ne: event.triggerKey },
+      publishedAt: { $gte: since },
+      $or: filters,
+    },
+    {
+      sort: { publishedAt: -1 },
+    },
+  );
+
+  return article ? sanitizePublicArticle(article) : null;
+}
+
 export async function countArticlesByStatus(
   col: Collection<NewsArticleDoc> = articlesCollection(),
 ): Promise<Record<string, number>> {
@@ -111,7 +172,7 @@ export async function countArticlesByStatus(
 
 export function sanitizePublicArticle(article: NewsArticleDoc): NewsArticleDoc {
   const traderName = article.facts?.traderName;
-  return {
+  const sanitizedArticle = {
     ...article,
     title: sanitizeWalletLabels(article.title),
     dek: sanitizeWalletLabels(article.dek),
@@ -120,5 +181,12 @@ export function sanitizePublicArticle(article: NewsArticleDoc): NewsArticleDoc {
       ...article.facts,
       traderName: isWalletLikeLabel(traderName) ? GENERIC_TRADER_LABEL : traderName,
     },
+    byline: article.byline ?? buildArticleByline(),
+    editorialDisclosure: article.editorialDisclosure ?? buildEditorialDisclosure(),
+    sourceLinks: article.sourceLinks?.length ? article.sourceLinks : buildSourceLinks(article),
+  };
+  return {
+    ...sanitizedArticle,
+    image: article.image ?? buildArticleImage(sanitizedArticle),
   };
 }

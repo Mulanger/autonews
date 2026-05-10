@@ -7,7 +7,8 @@ export async function ensureIndexes(): Promise<void> {
     articles.createIndex({ status: 1, publishedAt: -1 }),
     articles.createIndex({ kind: 1, publishedAt: -1 }),
     articles.createIndex({ 'facts.conditionId': 1, kind: 1 }),
+    articles.createIndex({ 'facts.marketSlug': 1, kind: 1, publishedAt: -1 }),
     articles.createIndex({ 'facts.wallet': 1, publishedAt: -1 }),
+    articles.createIndex({ 'quality.clusterKey': 1, publishedAt: -1 }),
   ]);
 }
-

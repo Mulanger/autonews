@@ -6,6 +6,7 @@ import { articlesCollection } from '../db/mongo.js';
 import { writeLossArticlesForResolution, writeTradeArticle } from '../services/article_writer.js';
 import type { ResolutionEventPayload, WhaleDto } from '../shared/types.js';
 import { buildGoogleNewsSitemapXml, buildRssXml, buildSitemapXml } from './xml_routes.js';
+import { renderArticleImageSvg } from '../services/article_assets.js';
 import { renderArticleHtml, renderNewsIndexHtml } from './renderer.js';
 
 export function buildServer() {
@@ -34,6 +35,11 @@ export function buildServer() {
     };
   });
 
+  app.get('/robots.txt', async (_request, reply) => {
+    reply.type('text/plain; charset=utf-8');
+    return ['User-agent: *', 'Allow: /v1/news/', 'Allow: /news/', 'Disallow: /v1/hooks/', ''].join('\n');
+  });
+
   app.get('/v1/news', async (request) => {
     const query = request.query as { limit?: string };
     const limit = Number.parseInt(query.limit ?? '25', 10);
@@ -49,6 +55,19 @@ export function buildServer() {
       return { error: 'not_found' };
     }
     return { article };
+  });
+
+  app.get('/v1/news/:slug/image.svg', async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+    const article = await getArticleBySlug(slug);
+    if (!article) {
+      reply.code(404).type('text/plain; charset=utf-8');
+      return 'not found';
+    }
+    reply
+      .type('image/svg+xml; charset=utf-8')
+      .header('Cache-Control', 'public, max-age=300, s-maxage=1800');
+    return renderArticleImageSvg(article);
   });
 
   app.post('/v1/hooks/whale', async (request, reply) => {
@@ -87,6 +106,19 @@ export function buildServer() {
     return renderArticleHtml(article, related);
   });
 
+  app.get('/news/:slug/image.svg', async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+    const article = await getArticleBySlug(slug);
+    if (!article) {
+      reply.code(404).type('text/plain; charset=utf-8');
+      return 'not found';
+    }
+    reply
+      .type('image/svg+xml; charset=utf-8')
+      .header('Cache-Control', 'public, max-age=300, s-maxage=1800');
+    return renderArticleImageSvg(article);
+  });
+
   app.get('/sitemap.xml', async (_request, reply) => {
     const articles = await listRecentNewsArticles(1000);
     reply.type('application/xml; charset=utf-8');
@@ -113,4 +145,3 @@ function isAuthorized(headerValue: unknown): boolean {
   if (!secret) return true;
   return headerValue === secret;
 }
-

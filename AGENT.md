@@ -7,6 +7,8 @@ This repo owns the automated news worker and article API for Polywhale. It is in
 - Create a news article when a whale trade at or above `TRADE_NEWS_MIN_USD` is observed.
 - Create a news article when the resolution tracker materializes a resolved BUY loss at or above `LOSS_NEWS_MIN_USD`.
 - Use MiniMax M2.7 through an environment variable key to make article copy varied, but always fall back to deterministic template copy if AI is unavailable.
+- Apply the SEO quality gate before publishing: story score, event age, and recent similar article clusters are checked so the worker publishes fewer, stronger stories instead of many near-duplicate blurbs.
+- Every public article should expose a byline, editorial disclosure, source links, and an article-specific 1200x675 SVG image at `/news/:slug/image.svg` and `/v1/news/:slug/image.svg`.
 - Serve article APIs and sitemap/RSS routes for Railway.
 - The website renders canonical `/news` pages from this service through `AUTONEWS_BASE_URL`; do not point article canonicals at the autonews Railway subdomain.
 
@@ -42,7 +44,16 @@ This repo owns the automated news worker and article API for Polywhale. It is in
 - `GET /health`: service status and `news_articles` counts.
 - `GET /v1/news?limit=5`: latest published articles.
 - `GET /v1/news/:slug`: one published article.
+- `GET /v1/news/:slug/image.svg`: generated article image for canonical website metadata.
 - `GET /news`: standalone HTML fallback; the primary public hub is still the website route.
+
+## SEO Quality Controls
+
+- `NEWS_MIN_STORY_SCORE` defaults to `3`.
+- `NEWS_DUPLICATE_WINDOW_MS` defaults to six hours.
+- `NEWS_MAX_EVENT_AGE_HOURS` defaults to `72`.
+- `TRADE_NEWS_BREAKOUT_USD` and `LOSS_NEWS_BREAKOUT_USD` default to `500000`.
+- `AI_MAX_COMPLETION_TOKENS` defaults to `2200`.
 
 ## Railway
 

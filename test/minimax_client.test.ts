@@ -8,10 +8,9 @@ describe('MiniMax response parsing', () => {
 
   it('strips think blocks and parses the draft', () => {
     const draft = parseArticleJson(
-      '<think>hidden</think>\n{"title":"Headline","dek":"Summary","body":["One","Two"],"tags":["Polymarket"]}',
+      '<think>hidden</think>\n{"title":"Headline","dek":"Summary","body":["One","Two","Three"],"tags":["Polymarket"]}',
     );
     expect(draft.title).toBe('Headline');
-    expect(draft.body).toHaveLength(2);
+    expect(draft.body).toHaveLength(3);
   });
 });
-

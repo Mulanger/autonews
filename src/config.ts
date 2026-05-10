@@ -29,9 +29,15 @@ const ConfigSchema = z.object({
   minimaxModel: z.string().min(1),
   aiGenerationEnabled: z.boolean(),
   aiRequireSuccess: z.boolean(),
+  aiMaxCompletionTokens: z.number().int().positive(),
 
   tradeNewsMinUsd: z.number().positive(),
   lossNewsMinUsd: z.number().positive(),
+  newsMinStoryScore: z.number().int().min(0),
+  newsDuplicateWindowMs: z.number().int().positive(),
+  newsMaxEventAgeHours: z.number().int().positive(),
+  tradeNewsBreakoutUsd: z.number().positive(),
+  lossNewsBreakoutUsd: z.number().positive(),
 
   workerEnabled: z.boolean(),
   redisSubscriberEnabled: z.boolean(),
@@ -70,9 +76,15 @@ export function loadConfig(): Config {
     minimaxModel: process.env['MINIMAX_MODEL'] ?? 'MiniMax-M2.7',
     aiGenerationEnabled: boolFromEnv(process.env['AI_GENERATION_ENABLED'], true),
     aiRequireSuccess: boolFromEnv(process.env['AI_REQUIRE_SUCCESS'], false),
+    aiMaxCompletionTokens: intFromEnv(process.env['AI_MAX_COMPLETION_TOKENS'], 2200),
 
     tradeNewsMinUsd: intFromEnv(process.env['TRADE_NEWS_MIN_USD'], 100000),
     lossNewsMinUsd: intFromEnv(process.env['LOSS_NEWS_MIN_USD'], 200000),
+    newsMinStoryScore: intFromEnv(process.env['NEWS_MIN_STORY_SCORE'], 3),
+    newsDuplicateWindowMs: intFromEnv(process.env['NEWS_DUPLICATE_WINDOW_MS'], 6 * 60 * 60 * 1000),
+    newsMaxEventAgeHours: intFromEnv(process.env['NEWS_MAX_EVENT_AGE_HOURS'], 72),
+    tradeNewsBreakoutUsd: intFromEnv(process.env['TRADE_NEWS_BREAKOUT_USD'], 500000),
+    lossNewsBreakoutUsd: intFromEnv(process.env['LOSS_NEWS_BREAKOUT_USD'], 500000),
 
     workerEnabled: boolFromEnv(process.env['WORKER_ENABLED'], true),
     redisSubscriberEnabled: boolFromEnv(process.env['REDIS_SUBSCRIBER_ENABLED'], true),
@@ -96,4 +108,3 @@ export function loadConfig(): Config {
   cachedConfig = result.data;
   return cachedConfig;
 }
-

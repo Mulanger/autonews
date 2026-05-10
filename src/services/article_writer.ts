@@ -1,9 +1,21 @@
 import type { ResolutionEventPayload, TradeOutcomeDoc, WhaleDto } from '../shared/types.js';
-import { claimArticle, markArticleFailed, publishArticle } from '../db/repos/articles_repo.js';
+import {
+  claimArticle,
+  findRecentSimilarArticle,
+  markArticleFailed,
+  publishArticle,
+} from '../db/repos/articles_repo.js';
 import { outcomesCollection, tradesCollection } from '../db/mongo.js';
 import { loadConfig } from '../config.js';
 import { getLogger } from '../logger.js';
 import { canonicalUrlForSlug } from './article_templates.js';
+import { buildArticleImage } from './article_assets.js';
+import {
+  buildArticleByline,
+  buildEditorialDisclosure,
+  buildSourceLinks,
+} from './article_sources.js';
+import { evaluateArticleGate } from './article_quality.js';
 import { buildLossArticleEvent, buildTradeArticleEvent } from './event_builder.js';
 import { generateArticleDraft } from './minimax_client.js';
 
@@ -71,7 +83,21 @@ async function writeArticleForEvent(
   event: NonNullable<ReturnType<typeof buildTradeArticleEvent>>,
 ): Promise<boolean> {
   const log = getLogger();
-  const claim = await claimArticle(event);
+  const similar = await findRecentSimilarArticle(
+    event,
+    new Date(Date.now() - loadConfig().newsDuplicateWindowMs),
+  );
+  const gate = evaluateArticleGate(event, similar);
+
+  if (!gate.ok) {
+    log.info(
+      { slug: event.slug, triggerKey: event.triggerKey, score: gate.quality.score, reason: gate.reason },
+      'news article skipped by quality gate',
+    );
+    return false;
+  }
+
+  const claim = await claimArticle(event, gate.quality);
   if (!claim.inserted) {
     log.debug({ triggerKey: event.triggerKey }, 'article already exists');
     return false;
@@ -85,6 +111,11 @@ async function writeArticleForEvent(
       body: generated.draft.body,
       tags: generated.draft.tags,
       canonicalUrl: canonicalUrlForSlug(event.slug),
+      image: buildArticleImage(event),
+      sourceLinks: buildSourceLinks(event),
+      byline: buildArticleByline(),
+      editorialDisclosure: buildEditorialDisclosure(),
+      quality: gate.quality,
       ai: {
         provider: generated.provider,
         model: generated.model,
@@ -129,4 +160,3 @@ async function findTradeForOutcome(outcome: TradeOutcomeDoc): Promise<Partial<Wh
     polymarketUrl: trade.polymarketUrl ?? trade.market?.polymarketUrl,
   };
 }
-

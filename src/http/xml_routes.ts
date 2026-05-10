@@ -52,6 +52,11 @@ export function buildRssXml(articles: NewsArticleDoc[]): string {
         `      <guid>${escapeXml(article.canonicalUrl)}</guid>`,
         `      <pubDate>${article.publishedAt.toUTCString()}</pubDate>`,
         `      <description>${escapeXml(article.dek)}</description>`,
+        ...(article.image
+          ? [
+              `      <media:content url="${escapeXml(article.image.url)}" medium="image" width="${article.image.width}" height="${article.image.height}" type="${escapeXml(article.image.mimeType)}" />`,
+            ]
+          : []),
         '    </item>',
       ].join('\n');
     })
@@ -59,7 +64,7 @@ export function buildRssXml(articles: NewsArticleDoc[]): string {
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss version="2.0">',
+    '<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">',
     '  <channel>',
     '    <title>Polywhale News</title>',
     '    <link>https://www.polywhaletrades.com/news</link>',
@@ -70,4 +75,3 @@ export function buildRssXml(articles: NewsArticleDoc[]): string {
     '',
   ].join('\n');
 }
-

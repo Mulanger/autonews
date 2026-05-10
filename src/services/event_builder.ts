@@ -61,6 +61,7 @@ export function buildLossArticleEvent(
     transactionHash: trade?.transactionHash ?? null,
     polymarketUrl: trade?.polymarketUrl ?? market?.polymarketUrl ?? null,
     category: market?.category ?? null,
+    marketImageUrl: marketImageUrl(market),
     lossUsd,
     pnlUsd: outcome.pnlUsd,
     payoutUsd: outcome.payoutUsd,
@@ -107,6 +108,7 @@ function factsFromWhale(whale: WhaleDto): ArticleFactSet {
     transactionHash: whale.transactionHash ?? null,
     polymarketUrl: whale.polymarketUrl ?? whale.market?.polymarketUrl ?? null,
     category: whale.market?.category ?? null,
+    marketImageUrl: marketImageUrl(whale.market),
   };
 }
 
@@ -114,3 +116,13 @@ function shortId(id: string): string {
   return id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase();
 }
 
+function marketImageUrl(market: WhaleDto['market'] | undefined): string | null {
+  const value = market?.imageUrl || market?.image || market?.iconUrl || market?.icon || null;
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
