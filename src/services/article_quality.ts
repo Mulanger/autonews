@@ -68,12 +68,16 @@ export function scoreArticleEvent(event: ArticleEvent): ArticleQuality {
 export function evaluateArticleGate(event: ArticleEvent, similarArticle: NewsArticleDoc | null): ArticleGateResult {
   const config = loadConfig();
   const quality = scoreArticleEvent(event);
+  const maxEventAgeHours =
+    event.kind === 'whale_trade'
+      ? config.tradeNewsMaxEventAgeHours
+      : config.lossNewsMaxEventAgeHours || config.newsMaxEventAgeHours;
 
-  if (quality.eventAgeHours > config.newsMaxEventAgeHours) {
+  if (quality.eventAgeHours > maxEventAgeHours) {
     return {
       ok: false,
       quality,
-      reason: `event is ${quality.eventAgeHours.toFixed(1)}h old; max is ${config.newsMaxEventAgeHours}h`,
+      reason: `event is ${quality.eventAgeHours.toFixed(1)}h old; max is ${maxEventAgeHours}h`,
     };
   }
 

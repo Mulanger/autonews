@@ -36,6 +36,8 @@ const ConfigSchema = z.object({
   newsMinStoryScore: z.number().int().min(0),
   newsDuplicateWindowMs: z.number().int().positive(),
   newsMaxEventAgeHours: z.number().int().positive(),
+  tradeNewsMaxEventAgeHours: z.number().int().positive(),
+  lossNewsMaxEventAgeHours: z.number().int().positive(),
   tradeNewsBreakoutUsd: z.number().positive(),
   lossNewsBreakoutUsd: z.number().positive(),
 
@@ -83,6 +85,11 @@ export function loadConfig(): Config {
     newsMinStoryScore: intFromEnv(process.env['NEWS_MIN_STORY_SCORE'], 3),
     newsDuplicateWindowMs: intFromEnv(process.env['NEWS_DUPLICATE_WINDOW_MS'], 6 * 60 * 60 * 1000),
     newsMaxEventAgeHours: intFromEnv(process.env['NEWS_MAX_EVENT_AGE_HOURS'], 72),
+    tradeNewsMaxEventAgeHours: intFromEnv(process.env['TRADE_NEWS_MAX_EVENT_AGE_HOURS'], 4),
+    lossNewsMaxEventAgeHours: intFromEnv(
+      process.env['LOSS_NEWS_MAX_EVENT_AGE_HOURS'],
+      intFromEnv(process.env['NEWS_MAX_EVENT_AGE_HOURS'], 72),
+    ),
     tradeNewsBreakoutUsd: intFromEnv(process.env['TRADE_NEWS_BREAKOUT_USD'], 500000),
     lossNewsBreakoutUsd: intFromEnv(process.env['LOSS_NEWS_BREAKOUT_USD'], 500000),
 

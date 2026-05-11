@@ -26,7 +26,8 @@ Useful SEO quality controls:
 
 - `NEWS_MIN_STORY_SCORE` defaults to `3`.
 - `NEWS_DUPLICATE_WINDOW_MS` defaults to `21600000` (6 hours).
-- `NEWS_MAX_EVENT_AGE_HOURS` defaults to `72`.
+- `TRADE_NEWS_MAX_EVENT_AGE_HOURS` defaults to `4`; whale-trade stories older than this are skipped and removed from public lists/sitemaps.
+- `LOSS_NEWS_MAX_EVENT_AGE_HOURS` defaults to `NEWS_MAX_EVENT_AGE_HOURS`, which defaults to `72`.
 - `TRADE_NEWS_BREAKOUT_USD` and `LOSS_NEWS_BREAKOUT_USD` default to `500000`.
 - `AI_MAX_COMPLETION_TOKENS` defaults to `2200`.
 

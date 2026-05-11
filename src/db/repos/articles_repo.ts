@@ -8,6 +8,7 @@ import {
   buildEditorialDisclosure,
   buildSourceLinks,
 } from '../../services/article_sources.js';
+import { shouldListNewsArticle } from '../../services/article_freshness.js';
 
 export interface ArticleClaim {
   slug: string;
@@ -111,9 +112,9 @@ export async function listPublishedArticles(limit = 25): Promise<NewsArticleDoc[
   const articles = await articlesCollection()
     .find({ status: 'published' })
     .sort({ publishedAt: -1, _id: -1 })
-    .limit(Math.min(Math.max(limit, 1), 100))
+    .limit(Math.min(Math.max(limit * 3, 25), 300))
     .toArray();
-  return articles.map(sanitizePublicArticle);
+  return articles.map(sanitizePublicArticle).filter(shouldListNewsArticle).slice(0, Math.min(Math.max(limit, 1), 100));
 }
 
 export async function listRecentNewsArticles(limit = 1000): Promise<NewsArticleDoc[]> {
@@ -122,7 +123,7 @@ export async function listRecentNewsArticles(limit = 1000): Promise<NewsArticleD
     .sort({ publishedAt: -1, _id: -1 })
     .limit(Math.min(Math.max(limit, 1), 1000))
     .toArray();
-  return articles.map(sanitizePublicArticle);
+  return articles.map(sanitizePublicArticle).filter(shouldListNewsArticle);
 }
 
 export async function findRecentSimilarArticle(

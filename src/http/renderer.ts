@@ -1,6 +1,7 @@
 import type { NewsArticleDoc } from '../shared/types.js';
 import { compactUsd, displayDate, formatPrice, formatUsd } from '../shared/format.js';
 import { escapeHtml } from '../shared/xml.js';
+import { isStaleTradeArticle } from '../services/article_freshness.js';
 
 export function renderNewsIndexHtml(articles: NewsArticleDoc[]): string {
   const items = articles
@@ -75,6 +76,7 @@ export function renderArticleHtml(article: NewsArticleDoc, related: NewsArticleD
     title: article.title,
     description: article.dek,
     canonical: article.canonicalUrl,
+    robots: isStaleTradeArticle(article) ? 'noindex,follow' : 'index,follow,max-image-preview:large',
     imageUrl: image?.url,
     imageAlt: image?.alt,
     jsonLd,
@@ -128,6 +130,7 @@ function renderShell(args: {
   jsonLd?: unknown;
   imageUrl?: string;
   imageAlt?: string;
+  robots?: string;
 }) {
   return `<!doctype html>
 <html lang="en">
@@ -136,6 +139,7 @@ function renderShell(args: {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(args.title)}</title>
   <meta name="description" content="${escapeHtml(args.description)}">
+  <meta name="robots" content="${escapeHtml(args.robots || 'index,follow,max-image-preview:large')}">
   <link rel="canonical" href="${escapeHtml(args.canonical)}">
   <link rel="icon" href="https://www.polywhaletrades.com/favicon.png">
   <meta property="og:title" content="${escapeHtml(args.title)}">

@@ -51,7 +51,8 @@ This repo owns the automated news worker and article API for Polywhale. It is in
 
 - `NEWS_MIN_STORY_SCORE` defaults to `3`.
 - `NEWS_DUPLICATE_WINDOW_MS` defaults to six hours.
-- `NEWS_MAX_EVENT_AGE_HOURS` defaults to `72`.
+- `TRADE_NEWS_MAX_EVENT_AGE_HOURS` defaults to `4`; stale whale-trade backfills older than this should not publish as fresh news and are filtered out of public lists/sitemaps.
+- `LOSS_NEWS_MAX_EVENT_AGE_HOURS` defaults to `NEWS_MAX_EVENT_AGE_HOURS`, which defaults to `72`.
 - `TRADE_NEWS_BREAKOUT_USD` and `LOSS_NEWS_BREAKOUT_USD` default to `500000`.
 - `AI_MAX_COMPLETION_TOKENS` defaults to `2200`.
 
